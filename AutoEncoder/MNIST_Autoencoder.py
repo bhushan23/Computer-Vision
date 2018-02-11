@@ -15,17 +15,17 @@ import torch.nn.functional as Functional
 import torch.optim as optim
 from torchvision.utils import save_image
 import os
-get_ipython().magic(u'matplotlib inline')
+# get_ipython().magic(u'matplotlib inline')
 
 
 # In[2]:
 
 
-num_epochs = 10
+num_epochs = 100
 batch_size = 128
 learning_rate = 1e-3
 IsCuda = torch.cuda.is_available()
-
+print 'CUDA: ', IsCuda
 
 # In[3]:
 
@@ -104,7 +104,7 @@ class AutoEncoder(nn.Module):
         x = self.decoder(x)
         return x
 
-model = AutoEncoder().cuda if IsCuda else AutoEncoder()
+model = AutoEncoder().cuda() if IsCuda else AutoEncoder()
 print model
 
 
@@ -112,6 +112,7 @@ print model
 
 
 criterion = nn.MSELoss()
+# print model.parameters()
 optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate, weight_decay = 1e-5)
 
 
@@ -141,3 +142,4 @@ for epoch in range(num_epochs):
     pic = to_img(output.cpu().data)
     save_image(pic, './genImg/image_{}.png'.format(epoch))
 
+torch.save(model.state_dict(), './linear_autoencoder.pth')
