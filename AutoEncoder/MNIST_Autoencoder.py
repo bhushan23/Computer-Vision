@@ -136,10 +136,9 @@ for epoch in range(num_epochs):
         optimizer.step()
         
     # Log
-    # if epoch % 10 == 9:
-    # print output.shape
-    print 'Epoch [{}/{}], Loss:{:.4f}'.format(epoch+1, num_epochs, loss.data[0])
-    pic = to_img(output.cpu().data)
-    save_image(pic, './genImg/image_{}.png'.format(epoch))
+    if epoch % 10 == 0:
+        print 'Epoch [{}/{}], Loss:{:.4f}'.format(epoch+1, num_epochs, loss.data[0])
+        pic = to_img(output.cpu().data)
+        save_image(pic, './genImg/image_{}.png'.format(epoch))
 
 torch.save(model.state_dict(), './linear_autoencoder.pth')
