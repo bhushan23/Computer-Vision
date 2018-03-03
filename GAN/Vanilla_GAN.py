@@ -55,7 +55,7 @@ def show(img):
     plt.imshow(np.transpose(npimg, (1,2,0)), interpolation='nearest')
 
 
-# In[5]:
+# In[9]:
 
 
 Generator_input = 64
@@ -76,8 +76,8 @@ Discriminator = nn.Sequential(
         nn.Sigmoid())
 
 if IS_CUDA:
-    D.cuda()
-    G.cuda()
+    Discriminator.cuda()
+    Generator.cuda()
 
 
 # In[6]:
@@ -144,5 +144,5 @@ def train(num_epochs = 10, d_iter = 1):
 # In[8]:
 
 
-train()
+train(200)
 
