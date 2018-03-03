@@ -53,9 +53,13 @@ def var(x):
 def show(img):
     npimg = img.numpy()
     plt.imshow(np.transpose(npimg, (1,2,0)), interpolation='nearest')
+    
+def denorm(x):
+    out = (x + 1) / 2
+    return out.clamp(0, 1)
 
 
-# In[9]:
+# In[5]:
 
 
 Generator_input = 64
@@ -86,7 +90,7 @@ if IS_CUDA:
 lossCriterion = nn.BCELoss()
 G_opt = torch.optim.Adam(Generator.parameters(), lr = 0.0001)
 D_opt = torch.optim.Adam(Discriminator.parameters(), lr = 0.0001)
-fixed_x = var(torch.rand(batch_size, Generator_input))
+fixed_x = var(torch.randn(batch_size, Generator_input))
 
 
 # In[7]:
@@ -98,13 +102,12 @@ def train(num_epochs = 10, d_iter = 1):
         for data in data_loader:
             image, _  = data
             image = var(image.view(image.size(0),  -1))
-            
             # Train Discriminator
             #for k in range(0, d_iter):
             # For Log D(x)
             D_real = Discriminator(image)
             # For Log(1 - D(G(Z)))
-            Z_noise = var(torch.rand(batch_size, Generator_input))
+            Z_noise = var(torch.randn(batch_size, Generator_input))
             G_fake = Generator(Z_noise)
             D_fake = Discriminator(G_fake)
 
@@ -120,7 +123,7 @@ def train(num_epochs = 10, d_iter = 1):
 
                 
             # Train Generator
-            Z_noise = var(torch.rand(batch_size, Generator_input))
+            Z_noise = var(torch.randn(batch_size, Generator_input))
             G_fake = Generator(Z_noise)
             D_fake = Discriminator(G_fake)
             # Compute Generator Loss
@@ -138,11 +141,17 @@ def train(num_epochs = 10, d_iter = 1):
         pic = pic.view(pic.size(0), 1, 28, 28) 
         outputImages.append(pic)
         torchvision.utils.save_image(pic.data.cpu(), path+'/image_{}.png'.format(epoch))             
-            
 
 
 # In[8]:
 
 
 train(200)
+
+
+# In[13]:
+
+
+torch.save(Generator.state_dict(), './Generator.pkl')
+torch.save(Discriminator.state_dict(), './Discriminator.pkl')
 
