@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[34]:
 
 
 import torch
@@ -16,9 +16,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.utils as tutils
 import imageio
+import pickle
 
 
-# In[2]:
+# In[35]:
 
 
 # Options being used 
@@ -36,7 +37,7 @@ transform = transforms.Compose([
                                      std=(0.5, 0.5, 0.5))])
 
 
-# In[3]:
+# In[36]:
 
 
 # MNIST dataset
@@ -50,7 +51,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                           shuffle=True)
 
 
-# In[4]:
+# In[71]:
 
 
 # Helper routines
@@ -73,12 +74,41 @@ def denorm(x):
 def generate_animation(root, epoch, name):
     images = []
     for e in range(epoch):
-        img_name = root+'/image_'+str(e+1)+'.png'
+        img_name = root+'/image_'+str(e)+'.png'
         images.append(imageio.imread(img_name))
     imageio.mimsave(root+ '/' + name +'.gif', images, fps=5)
 
+def drawLossPlot(generatorLoss, discriminatorLoss, showPlot = False, savePlot = True):
+    plt.xlabel('Iterations')
+    plt.ylabel('Loss')
+    plt.title('Vanilla GAN Loss')
+    plt.plot(generatorLoss)
+    plt.plot(discriminatorLoss)
+    if showPlot:
+        plt.show()
+    if savePlot:
+        plt.savefig('Loss_Plot_Vanilla_GAN_'+str(num_epochs)+'.png')
+    
+class LossModule: 
+    def __init__(self):
+        self.D_loss = []
+        self.G_loss = []
 
-# In[5]:
+    def insertDiscriminatorLoss(self, lossVal):
+        self.D_loss.append(lossVal)
+    
+    def insertGeneratorLoss(self, lossVal):
+        self.G_loss.append(lossVal)
+    
+    def getDiscriminatorLoss(self):
+        return self.D_loss
+    
+    def getGeneratorLoss(self):
+        return self.G_loss
+    
+
+
+# In[47]:
 
 
 # Network
@@ -104,21 +134,20 @@ if IS_CUDA:
     Generator.cuda()
 
 
-# In[6]:
+# In[48]:
 
 
 lossCriterion = nn.BCELoss()
 G_opt = torch.optim.Adam(Generator.parameters(), lr = 0.0002)
 D_opt = torch.optim.Adam(Discriminator.parameters(), lr = 0.0002)
 fixed_x = var(torch.randn(batch_size, Generator_input))
+lossManager = LossModule()
 
 
-# In[9]:
+# In[51]:
 
 
 outputImages = []
-D_loss_plot = []
-G_loss_plot = []
 def train(num_epochs = 10, d_iter = 1):
     for epoch in range(num_epochs):
         for data in data_loader:
@@ -160,51 +189,56 @@ def train(num_epochs = 10, d_iter = 1):
             
         #print epoch
         print 'Epoch [{}/{}], Discriminator {:.4f}, Generator {:.4f}'.format(epoch+1, num_epochs, D_loss.data[0], G_loss.data[0])
-        D_loss_plot.append(D_loss.data[0])
-        G_loss_plot.append(G_loss.data[0])
+        lossManager.insertDiscriminatorLoss(D_loss.data[0])
+        lossManager.insertGeneratorLoss(G_loss.data[0])
         pic = Generator(fixed_x)
         pic = pic.view(pic.size(0), 1, 28, 28) 
         pic = denorm(pic.data)
         outputImages.append(pic)
-        torchvision.utils.save_image(pic, path+'/image_{}.png'.format(epoch))             
+        torchvision.utils.save_image(pic, path+'image_{}.png'.format(epoch))             
 
 
-# In[10]:
+# In[53]:
 
 
-# num_epochs = 200
+num_epochs = 5
 train(num_epochs)
 
 
-# In[22]:
+# In[72]:
 
 
 # Plot the Loss for Generator and Discriminator
-plt.xlabel('Iterations')
-plt.ylabel('Loss')
-plt.title('Vanilla GAN Loss')
-plt.plot(D_loss_plot)
-plt.plot(G_loss_plot)
-
-if showPlot:
-    plt.show()
-if savePlot:
-    plt.savefig('Loss_Plot_Vanilla_GAN_'+str(num_epochs)+'.png')
+#drawLossPlot(lossManager.getGeneratorLoss(), lossManager.getDiscriminatorLoss(), showPlot = True, savePlot = False)
 
 
-# In[28]:
+# In[60]:
 
 
 # Generate GIF
 generate_animation(path, 5, 'Vanilla_Gan')
 
 
-# In[29]:
+# In[65]:
 
 
 # Save the model
 torch.save(Generator.state_dict(), './Generator.pkl')
 torch.save(Discriminator.state_dict(), './Discriminator.pkl')
+pickle.dump(lossManager, open( "LossManager.pkl", "wb" ))
+
+
+# In[66]:
+
+
+# Load Loss Manager for viewing data
+#lossManagerTrained = pickle.load(open( "LossManager.pkl", "rb" ))
+
+
+# In[73]:
+
+
+#drawLossPlot(lossManagerTrained.getGeneratorLoss(), lossManagerTrained.getDiscriminatorLoss(), showPlot = True, savePlot = False)
 
 
 # In[2]:
