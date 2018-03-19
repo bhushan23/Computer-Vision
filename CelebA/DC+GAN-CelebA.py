@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torchvision.utils as tutils
 import imageio
+from PIL import Image
 import pickle
 
 
@@ -29,7 +30,7 @@ path = './genImg/'
 dataSetPath = './Data/CelebA'
 showPlot = False
 savePlot = True
-num_epochs = 200
+num_epochs = 400
 IS_CUDA = False
 
 
@@ -37,7 +38,7 @@ IS_CUDA = False
 
 
 transform = transforms.Compose([
-        transforms.Resize(imgDim),
+        transforms.Scale(imgDim),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
@@ -206,6 +207,7 @@ fixed_x = var(torch.randn((5 * 5, 100)).view(-1, 100, 1, 1))    # fixed noise
 outputImages = []
 def train(num_epochs = 10, d_iter = 1):
     for epoch in range(num_epochs):
+        i = 0
         for data in data_loader:
             image, _  = data
             bSize = image.size()[0]
@@ -245,12 +247,22 @@ def train(num_epochs = 10, d_iter = 1):
             G_loss.backward()
             G_opt.step()
             
+            if i % 100 == 0:
+                print 'Step [{}] Epoch [{}/{}], Discriminator {:.4f}, Generator {:.4f}'.format(i/100, epoch+1, num_epochs, D_loss.data[0], G_loss.data[0])
+                pic = G(fixed_x)
+                #pic = pic.view(pic.size(0), 1, 28, 28) 
+                pic = denorm(pic.data)
+                outputImages.append(pic)
+                #torchvision.utils.save_image(pic, path+'image_{}.png'.format(epoch))
+                save_image(pic, './temp/image_{}_{}.png'.format(epoch, i/100))             
+            i += 1
+
         #print epoch
         print 'Epoch [{}/{}], Discriminator {:.4f}, Generator {:.4f}'.format(epoch+1, num_epochs, D_loss.data[0], G_loss.data[0])
         lossManager.insertDiscriminatorLoss(D_loss.data[0])
         lossManager.insertGeneratorLoss(G_loss.data[0])
-        pic = Generator(fixed_x)
-        pic = pic.view(pic.size(0), 1, 28, 28) 
+        pic = G(fixed_x)
+        #pic = pic.view(pic.size(0), 1, 28, 28) 
         pic = denorm(pic.data)
         outputImages.append(pic)
         #torchvision.utils.save_image(pic, path+'image_{}.png'.format(epoch))
